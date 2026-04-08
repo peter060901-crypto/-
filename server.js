@@ -5,6 +5,7 @@ app.use(express.json());
 app.use(express.static('public'));
 
 let users = [];
+let likes = [];
 
 function score(a,b){
   let s=0;
@@ -15,10 +16,15 @@ function score(a,b){
   return s;
 }
 
-// 회원 등록
+// 등록
 app.post('/register',(req,res)=>{
   users.push(req.body);
   res.json({ok:true});
+});
+
+// 전체 사용자
+app.get('/users',(req,res)=>{
+  res.json(users);
 });
 
 // 매칭
@@ -26,24 +32,19 @@ app.post('/match',(req,res)=>{
   const me = req.body;
 
   const result = users
+    .filter(u => u.name !== me.name)
     .map(u=>({...u, score:score(me,u)}))
     .sort((a,b)=>b.score-a.score)
-    .slice(0,5);
+    .slice(0,10);
 
   res.json(result);
 });
 
-app.listen(3000, ()=>console.log("running"));
-let likes = [];
-
-// 전체 사용자 보기
-app.get('/users',(req,res)=>{
-  res.json(users);
-});
-
-// 관심 표시
+// 관심
 app.post('/like',(req,res)=>{
-  const {from, to} = req.body;
+  const {from,to} = req.body;
   likes.push({from,to});
   res.json({ok:true});
 });
+
+app.listen(3000, ()=>console.log("running"));
