@@ -16,9 +16,12 @@ function score(a,b){
   return s;
 }
 
-// 등록
+// 등록 (중복 방지)
 app.post('/register',(req,res)=>{
-  users.push(req.body);
+  const exists = users.find(u => u.name === req.body.name);
+  if(!exists){
+    users.push(req.body);
+  }
   res.json({ok:true});
 });
 
@@ -43,8 +46,26 @@ app.post('/match',(req,res)=>{
 // 관심
 app.post('/like',(req,res)=>{
   const {from,to} = req.body;
-  likes.push({from,to});
+
+  const exists = likes.find(l => l.from===from && l.to===to);
+  if(!exists){
+    likes.push({from,to});
+  }
+
   res.json({ok:true});
+});
+
+// 상호 매칭 조회
+app.get('/matches/:name',(req,res)=>{
+  const me = req.params.name;
+
+  const myLikes = likes.filter(l => l.from===me);
+
+  const mutual = myLikes.filter(l =>
+    likes.find(x => x.from===l.to && x.to===me)
+  );
+
+  res.json(mutual);
 });
 
 app.listen(3000, ()=>console.log("running"));
