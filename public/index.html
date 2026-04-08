@@ -2,25 +2,95 @@
 <html>
 <body style="font-family:sans-serif; padding:20px">
 
-<h2>결 매칭 서비스</h2>
+<h2>결 매칭</h2>
 
-<input id="name" placeholder="이름" />
+<div id="step1">
+  <input id="name" placeholder="이름" />
 
-<p>감정 속도</p>
-<select id="emotion">
-  <option>빠름</option>
-  <option>보통</option>
-  <option>느림</option>
-</select>
+  <p>감정 속도</p>
+  <select id="emotion">
+    <option>빠름</option>
+    <option>보통</option>
+    <option>느림</option>
+  </select>
 
-<p>표현 방식</p>
-<select id="expression">
-  <option>직접적</option>
-  <option>간접적</option>
-  <option>절제적</option>
-</select>
+  <p>표현 방식</p>
+  <select id="expression">
+    <option>직접적</option>
+    <option>간접적</option>
+    <option>절제적</option>
+  </select>
 
-<p>에너지 흐름</p>
-<select id="energy">
-  <option>안정적</option>
-  <option>변동적</option
+  <p>에너지 흐름</p>
+  <select id="energy">
+    <option>안정적</option>
+    <option>변동적</option>
+  </select>
+
+  <p>갈등 방식</p>
+  <select id="conflict">
+    <option>회피적</option>
+    <option>직면적</option>
+  </select>
+
+  <br><br>
+  <button onclick="next()">다음 단계 →</button>
+</div>
+
+<div id="step2" style="display:none">
+  <h3>등록 완료</h3>
+  <button onclick="match()">매칭 보러가기</button>
+</div>
+
+<div id="step3" style="display:none">
+  <h3>매칭 결과</h3>
+  <div id="result"></div>
+</div>
+
+<script>
+function getData(){
+  return {
+    name:document.getElementById('name').value,
+    emotion_speed:document.getElementById('emotion').value,
+    expression_style:document.getElementById('expression').value,
+    energy_flow:document.getElementById('energy').value,
+    conflict_style:document.getElementById('conflict').value
+  };
+}
+
+async function next(){
+  await fetch('/register',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(getData())
+  });
+
+  document.getElementById('step1').style.display='none';
+  document.getElementById('step2').style.display='block';
+}
+
+async function match(){
+  const res = await fetch('/match',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(getData())
+  });
+
+  const data = await res.json();
+
+  let html = '';
+  data.forEach(u=>{
+    html += `<div style="border:1px solid #ddd; padding:10px; margin-top:10px">
+      ${u.name} <br>
+      적합도: ${u.score}
+    </div>`;
+  });
+
+  document.getElementById('step2').style.display='none';
+  document.getElementById('step3').style.display='block';
+  document.getElementById('result').innerHTML = html;
+}
+</script>
+
+</body>
+</html>
