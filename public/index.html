@@ -1,50 +1,48 @@
 <!DOCTYPE html>
 <html>
-<body style="font-family:sans-serif; padding:20px">
+<body style="font-family:sans-serif; padding:20px; max-width:500px; margin:auto">
 
 <h2>결 매칭</h2>
 
+<!-- STEP 1 -->
 <div id="step1">
-  <input id="name" placeholder="이름" />
+  <input id="name" placeholder="이름" style="width:100%; padding:10px">
 
   <p>감정 속도</p>
-  <select id="emotion">
-    <option>빠름</option>
-    <option>보통</option>
-    <option>느림</option>
-  </select>
+  <select id="emotion"><option>빠름</option><option>보통</option><option>느림</option></select>
 
   <p>표현 방식</p>
-  <select id="expression">
-    <option>직접적</option>
-    <option>간접적</option>
-    <option>절제적</option>
-  </select>
+  <select id="expression"><option>직접적</option><option>간접적</option><option>절제적</option></select>
 
   <p>에너지 흐름</p>
-  <select id="energy">
-    <option>안정적</option>
-    <option>변동적</option>
-  </select>
+  <select id="energy"><option>안정적</option><option>변동적</option></select>
 
   <p>갈등 방식</p>
-  <select id="conflict">
-    <option>회피적</option>
-    <option>직면적</option>
-  </select>
+  <select id="conflict"><option>회피적</option><option>직면적</option></select>
 
   <br><br>
-  <button onclick="next()">다음 단계 →</button>
+  <button onclick="register()">다음 →</button>
 </div>
 
+<!-- STEP 2 -->
 <div id="step2" style="display:none">
   <h3>등록 완료</h3>
-  <button onclick="match()">매칭 보러가기</button>
+  <button onclick="loadUsers()">사람 보기</button>
+  <button onclick="match()">매칭 보기</button>
 </div>
 
+<!-- STEP 3 -->
 <div id="step3" style="display:none">
+  <h3>사람 목록</h3>
+  <div id="users"></div>
+  <button onclick="back()">뒤로</button>
+</div>
+
+<!-- STEP 4 -->
+<div id="step4" style="display:none">
   <h3>매칭 결과</h3>
   <div id="result"></div>
+  <button onclick="back()">뒤로</button>
 </div>
 
 <script>
@@ -58,15 +56,29 @@ function getData(){
   };
 }
 
-async function next(){
+async function register(){
   await fetch('/register',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(getData())
   });
 
-  document.getElementById('step1').style.display='none';
-  document.getElementById('step2').style.display='block';
+  show('step2');
+}
+
+async function loadUsers(){
+  const res = await fetch('/users');
+  const data = await res.json();
+
+  let html='';
+  data.forEach(u=>{
+    html += `<div style="border:1px solid #ddd; padding:10px; margin-top:10px">
+      ${u.name}
+    </div>`;
+  });
+
+  document.getElementById('users').innerHTML = html;
+  show('step3');
 }
 
 async function match(){
@@ -78,17 +90,41 @@ async function match(){
 
   const data = await res.json();
 
-  let html = '';
+  let html='';
   data.forEach(u=>{
     html += `<div style="border:1px solid #ddd; padding:10px; margin-top:10px">
-      ${u.name} <br>
-      적합도: ${u.score}
+      ${u.name}<br>
+      적합도: ${u.score}<br>
+      <button onclick="like('${u.name}')">관심</button>
     </div>`;
   });
 
-  document.getElementById('step2').style.display='none';
-  document.getElementById('step3').style.display='block';
   document.getElementById('result').innerHTML = html;
+  show('step4');
+}
+
+async function like(name){
+  await fetch('/like',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      from:document.getElementById('name').value,
+      to:name
+    })
+  });
+
+  alert(name + "에게 관심 표시 완료");
+}
+
+function show(id){
+  ['step1','step2','step3','step4'].forEach(s=>{
+    document.getElementById(s).style.display='none';
+  });
+  document.getElementById(id).style.display='block';
+}
+
+function back(){
+  show('step2');
 }
 </script>
 
