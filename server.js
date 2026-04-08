@@ -1,71 +1,131 @@
-const express = require('express');
-const app = express();
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif; padding:20px; max-width:500px; margin:auto">
 
-app.use(express.json());
-app.use(express.static('public'));
+<h2>결 매칭</h2>
 
-let users = [];
-let likes = [];
+<!-- STEP 1 -->
+<div id="step1">
+  <input id="name" placeholder="이름" style="width:100%; padding:10px">
 
-function score(a,b){
-  let s=0;
-  s += a.emotion_speed===b.emotion_speed?2:1;
-  s += a.expression_style===b.expression_style?2:1;
-  s += a.energy_flow!==b.energy_flow?2:1;
-  s += a.conflict_style===b.conflict_style?1:-1;
-  return s;
+  <p>감정 속도</p>
+  <select id="emotion"><option>빠름</option><option>보통</option><option>느림</option></select>
+
+  <p>표현 방식</p>
+  <select id="expression"><option>직접적</option><option>간접적</option><option>절제적</option></select>
+
+  <p>에너지 흐름</p>
+  <select id="energy"><option>안정적</option><option>변동적</option></select>
+
+  <p>갈등 방식</p>
+  <select id="conflict"><option>회피적</option><option>직면적</option></select>
+
+  <br><br>
+  <button onclick="register()">시작하기</button>
+</div>
+
+<!-- STEP 2 -->
+<div id="menu" style="display:none">
+  <h3>메뉴</h3>
+  <button onclick="match()">매칭 보기</button>
+  <button onclick="loadMatches()">내 연결 보기</button>
+</div>
+
+<!-- STEP 3 -->
+<div id="result" style="display:none"></div>
+
+<script>
+function getData(){
+  return {
+    name:document.getElementById('name').value,
+    emotion_speed:document.getElementById('emotion').value,
+    expression_style:document.getElementById('expression').value,
+    energy_flow:document.getElementById('energy').value,
+    conflict_style:document.getElementById('conflict').value
+  };
 }
 
-// 등록 (중복 방지)
-app.post('/register',(req,res)=>{
-  const exists = users.find(u => u.name === req.body.name);
-  if(!exists){
-    users.push(req.body);
+async function register(){
+  await fetch('/register',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(getData())
+  });
+
+  show('menu');
+}
+
+async function match(){
+  const res = await fetch('/match',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(getData())
+  });
+
+  const data = await res.json();
+
+  let html='<h3>매칭 결과</h3>';
+  data.forEach(u=>{
+    html += `<div style="border:1px solid #ddd; padding:10px; margin-top:10px">
+      ${u.name}<br>
+      적합도: ${u.score}<br>
+      <button onclick="like('${u.name}')">관심</button>
+    </div>`;
+  });
+
+  html += '<br><button onclick="back()">뒤로</button>';
+
+  document.getElementById('result').innerHTML = html;
+  show('result');
+}
+
+async function like(name){
+  await fetch('/like',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      from:document.getElementById('name').value,
+      to:name
+    })
+  });
+
+  alert("관심 표시 완료");
+}
+
+async function loadMatches(){
+  const name = document.getElementById('name').value;
+  const res = await fetch('/matches/'+name);
+  const data = await res.json();
+
+  let html='<h3>내 연결</h3>';
+
+  if(data.length===0){
+    html += "아직 연결 없음";
+  } else {
+    data.forEach(m=>{
+      html += `<div style="border:1px solid #ddd; padding:10px; margin-top:10px">
+        ${m.to}
+      </div>`;
+    });
   }
-  res.json({ok:true});
-});
 
-// 전체 사용자
-app.get('/users',(req,res)=>{
-  res.json(users);
-});
+  html += '<br><button onclick="back()">뒤로</button>';
 
-// 매칭
-app.post('/match',(req,res)=>{
-  const me = req.body;
+  document.getElementById('result').innerHTML = html;
+  show('result');
+}
 
-  const result = users
-    .filter(u => u.name !== me.name)
-    .map(u=>({...u, score:score(me,u)}))
-    .sort((a,b)=>b.score-a.score)
-    .slice(0,10);
+function show(id){
+  ['step1','menu','result'].forEach(s=>{
+    document.getElementById(s).style.display='none';
+  });
+  document.getElementById(id).style.display='block';
+}
 
-  res.json(result);
-});
+function back(){
+  show('menu');
+}
+</script>
 
-// 관심
-app.post('/like',(req,res)=>{
-  const {from,to} = req.body;
-
-  const exists = likes.find(l => l.from===from && l.to===to);
-  if(!exists){
-    likes.push({from,to});
-  }
-
-  res.json({ok:true});
-});
-
-// 상호 매칭 조회
-app.get('/matches/:name',(req,res)=>{
-  const me = req.params.name;
-
-  const myLikes = likes.filter(l => l.from===me);
-
-  const mutual = myLikes.filter(l =>
-    likes.find(x => x.from===l.to && x.to===me)
-  );
-
-  res.json(mutual);
-});
-
-app.listen(3000, ()=>console.log("running"));
+</body>
+</html>
