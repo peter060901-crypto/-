@@ -34,3 +34,16 @@ app.post('/match',(req,res)=>{
 });
 
 app.listen(3000, ()=>console.log("running"));
+let likes = [];
+
+// 전체 사용자 보기
+app.get('/users',(req,res)=>{
+  res.json(users);
+});
+
+// 관심 표시
+app.post('/like',(req,res)=>{
+  const {from, to} = req.body;
+  likes.push({from,to});
+  res.json({ok:true});
+});
